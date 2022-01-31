@@ -1,7 +1,6 @@
 const { Telegraf, session } = require("telegraf");
 const { TOKEN } = require("./config");
 const bot = new Telegraf(TOKEN);
-const locale = require("./locale");
 const stage = require("./stage");
 
 bot.use(session());

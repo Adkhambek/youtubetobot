@@ -16,12 +16,10 @@ const Start = new Scenes.WizardScene(
     async (ctx) => {
         const text = ctx.message.text;
         const messageId = ctx.message.message_id + 1;
-        const chatId = ctx.message.chat.id;
-
+        const videoInfo = await ytdl.videoInfo(text);
         await load(() => {
             ctx.reply("🔍 Tekshirilmoqda...");
         }, 500);
-        const videoInfo = await ytdl.videoInfo(text);
         if (videoInfo.code === 400) {
             await load(() => {
                 ctx.deleteMessage(messageId);
@@ -31,12 +29,17 @@ const Start = new Scenes.WizardScene(
         } else {
             await load(() => {
                 ctx.deleteMessage(messageId);
+                const btns = [];
+                for (const format of videoInfo.formats) {
+                    btns.push([Markup.button.callback(format.quality, "good")]);
+                }
                 ctx.replyWithPhoto(
                     { url: videoInfo.thumbnail },
                     {
                         parse_mode: "HTML",
                         disable_web_page_preview: true,
                         caption: `<b>${videoInfo.title}</b>\n\n👁 ${videoInfo.views} 👍 ${videoInfo.likes}\n📥 ${videoInfo.date}\n👤 <a href="${videoInfo.channel}">${videoInfo.channelName}</a>\n🕒 ${videoInfo.duration}\n\nQaysi formatda ko'chirmoqchisiz:`,
+                        ...Markup.inlineKeyboard(btns),
                     }
                 );
                 return;
