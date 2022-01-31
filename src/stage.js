@@ -1,6 +1,7 @@
 const { Markup, Scenes } = require("telegraf");
 const locale = require("./locale");
-// const util = require("./util");
+const ytdl = require("./utils/ytdl");
+const load = require("./utils/load");
 
 const Start = new Scenes.WizardScene(
     "START",
@@ -10,44 +11,37 @@ const Start = new Scenes.WizardScene(
             parse_mode: "HTML",
             disable_web_page_preview: true,
         });
+        return ctx.wizard.next();
     },
     async (ctx) => {
         const text = ctx.message.text;
+        const messageId = ctx.message.message_id + 1;
+        const chatId = ctx.message.chat.id;
 
-        // if (text === locale.back.key) {
-        //     ctx.reply(locale.back.text, locale.back.btns);
-        //     return ctx.scene.leave();
-        // }
-        // if (text.length > 2000) {
-        //     ctx.reply(
-        //         "Kiritilgan matndagi belgilar soni 2000 tadan kam bo'lishi kerak"
-        //     );
-        //     return;
-        // }
-        // const response = await util.spellingErrors(text);
-        // if (response.code === 200) {
-        //     const checkedText = await response.data;
-        //     if (!checkedText.errors) {
-        //         ctx.reply("Hech qanday xato topilmadi");
-        //         return;
-        //     } else {
-        //         let errors = "";
-        //         let count = 1;
-        //         for (const error of checkedText.data) {
-        //             errors += `<code>${count++}. ${
-        //                 error.word
-        //             } (o'xshash: ${error.suggestions.join(", ")})</code>\n`;
-        //         }
-        //         ctx.reply(
-        //             `<b>${checkedText.data.length} ta xato so'z topildi.</b>\n\n<b>Bular:</b>\n${errors}`,
-        //             { parse_mode: "HTML" }
-        //         );
-        //         return;
-        //     }
-        // } else {
-        //     ctx.reply(response.message);
-        //     return;
-        // }
+        await load(() => {
+            ctx.reply("🔍 Tekshirilmoqda...");
+        }, 500);
+        const videoInfo = await ytdl.videoInfo(text);
+        if (videoInfo.code === 400) {
+            await load(() => {
+                ctx.deleteMessage(messageId);
+                ctx.reply(videoInfo.message);
+                return;
+            }, 2000);
+        } else {
+            await load(() => {
+                ctx.deleteMessage(messageId);
+                ctx.replyWithPhoto(
+                    { url: videoInfo.thumbnail },
+                    {
+                        parse_mode: "HTML",
+                        disable_web_page_preview: true,
+                        caption: `<b>${videoInfo.title}</b>\n\n👁 ${videoInfo.views} 👍 ${videoInfo.likes}\n📥 ${videoInfo.date}\n👤 <a href="${videoInfo.channel}">${videoInfo.channelName}</a>\n🕒 ${videoInfo.duration}\n\nQaysi formatda ko'chirmoqchisiz:`,
+                    }
+                );
+                return;
+            }, 500);
+        }
     }
 );
 
